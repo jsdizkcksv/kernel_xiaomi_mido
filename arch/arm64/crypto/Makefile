@@ -18,7 +18,8 @@ obj-$(CONFIG_CRYPTO_GHASH_ARM64_CE) += ghash-ce.o
 ghash-ce-y := ghash-ce-glue.o ghash-ce-core.o
 
 obj-$(CONFIG_CRYPTO_AES_ARM64_CE) += aes-ce-cipher.o
-CFLAGS_aes-ce-cipher.o += -march=armv8-a+crypto $(DISABLE_LTO)
+aes-ce-cipher-y := aes-ce-core.o aes-ce-glue.o
+CFLAGS_aes-ce-cipher.o += $(DISABLE_LTO)
 
 ifeq ($(filter -mcpu=%, $(MACH_CFLAGS)),)
 CFLAGS_aes-ce-cipher-core.o += -march=armv8-a+crypto -Wa,-march=armv8-a+crypto
