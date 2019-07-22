@@ -348,6 +348,7 @@ struct fscrypt_key {
 #define FS_EXTENT_FL			0x00080000 /* Extents */
 #define FS_EA_INODE_FL			0x00200000 /* Inode used for large EA */
 #define FS_EOFBLOCKS_FL			0x00400000 /* Reserved for ext4 */
+#define FS_VERITY_FL			0x00100000 /* Verity protected inode */
 #define FS_NOCOW_FL			0x00800000 /* Do not cow file */
 #define FS_INLINE_DATA_FL		0x10000000 /* Reserved for ext4 */
 #define FS_PROJINHERIT_FL		0x20000000 /* Create with parents projid */
