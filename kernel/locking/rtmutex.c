@@ -1105,6 +1105,9 @@ static void remove_waiter(struct rt_mutex *lock,
 	struct rt_mutex *next_lock;
 
 	lockdep_assert_held(&lock->wait_lock);
+	
+	if (!waiter_task) /* never enqueued */
+		return;
 
 	raw_spin_lock(&waiter_task->pi_lock);
 	rt_mutex_dequeue(lock, waiter);
@@ -1774,7 +1777,7 @@ int rt_mutex_start_proxy_lock(struct rt_mutex *lock,
 
 	raw_spin_lock_irq(&lock->wait_lock);
 	ret = __rt_mutex_start_proxy_lock(lock, waiter, task);
-	if (unlikely(ret))
+	if (unlikely(ret < 0))
 		remove_waiter(lock, waiter);
 	raw_spin_unlock_irq(&lock->wait_lock);
 
