@@ -656,6 +656,7 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			}
 			mbhc->hph_status &= ~(SND_JACK_HEADSET |
 						SND_JACK_LINEOUT |
+						SND_JACK_ANC_HEADPHONE |
 						SND_JACK_UNSUPPORTED);
 			mbhc->force_linein = false;
 		}
@@ -674,9 +675,8 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 			mbhc->jiffies_atreport = jiffies;
 		} else if (jack_type == SND_JACK_LINEOUT) {
 			mbhc->current_plug = MBHC_PLUG_TYPE_HIGH_HPH;
-		} else {
-			pr_debug("%s: invalid Jack type %d\n",__func__, jack_type);
-		}
+		} else if (jack_type == SND_JACK_ANC_HEADPHONE)
+			mbhc->current_plug = MBHC_PLUG_TYPE_ANC_HEADPHONE;
 
 		if (mbhc->mbhc_cb->hph_pa_on_status)
 			is_pa_on = mbhc->mbhc_cb->hph_pa_on_status(codec);
@@ -725,6 +725,7 @@ void wcd_mbhc_report_plug(struct wcd_mbhc *mbhc, int insertion,
 				    (mbhc->hph_status | SND_JACK_MECHANICAL),
 				    WCD_MBHC_JACK_MASK);
 		wcd_mbhc_clr_and_turnon_hph_padac(mbhc);
+
 	}
 	pr_debug("%s: leave hph_status %x\n", __func__, mbhc->hph_status);
 }
@@ -803,6 +804,8 @@ void wcd_mbhc_find_plug_and_report(struct wcd_mbhc *mbhc,
 			anc_mic_found =
 			mbhc->mbhc_fn->wcd_mbhc_detect_anc_plug_type(mbhc);
 		jack_type = SND_JACK_HEADSET;
+		if (anc_mic_found)
+			jack_type = SND_JACK_ANC_HEADPHONE;
 
 		/*
 		 * If Headphone was reported previously, this will
@@ -941,6 +944,9 @@ static void wcd_mbhc_swch_irq_handler(struct wcd_mbhc *mbhc)
 			    WCD_MBHC_REG_UPDATE_BITS(WCD_MBHC_ELECT_ISRC_EN, 0);
 			mbhc->is_extn_cable = false;
 			jack_type = SND_JACK_LINEOUT;
+			break;
+		case MBHC_PLUG_TYPE_ANC_HEADPHONE:
+			jack_type = SND_JACK_ANC_HEADPHONE;
 			break;
 		default:
 			pr_info("%s: Invalid current plug: %d\n",
@@ -1148,6 +1154,12 @@ static irqreturn_t wcd_mbhc_release_handler(int irq, void *data)
 	if (mbhc->mbhc_detection_logic == WCD_DETECTION_LEGACY &&
 		mbhc->current_plug == MBHC_PLUG_TYPE_HEADPHONE) {
 		wcd_mbhc_find_plug_and_report(mbhc, MBHC_PLUG_TYPE_HEADSET);
+#ifdef CONFIG_MACH_XIAOMI_C6
+		wcd_mbhc_jack_report(mbhc, &mbhc->headset_jack,
+				0, WCD_MBHC_JACK_MASK);
+		msleep(100);
+		wcd_mbhc_report_plug(mbhc, 1, SND_JACK_HEADSET);
+#endif
 		goto exit;
 
 	}
@@ -2122,6 +2134,18 @@ void wcd_mbhc_deinit(struct wcd_mbhc *mbhc)
 	mutex_destroy(&mbhc->hphr_pa_lock);
 }
 EXPORT_SYMBOL(wcd_mbhc_deinit);
+
+static int __init mbhc_init(void)
+{
+	return 0;
+}
+
+static void __exit mbhc_exit(void)
+{
+}
+
+module_init(mbhc_init);
+module_exit(mbhc_exit);
 
 MODULE_DESCRIPTION("wcd MBHC v2 module");
 MODULE_LICENSE("GPL v2");
